@@ -6,7 +6,28 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of geopr is to …
+The goal of GeoPR is to provide a simple and reliable interface for
+accessing official geospatial data from the Puerto Rico government
+GeoServer through its WFS service.
+
+GeoPR allows users to:
+
+- Discover available geospatial layers published by the Puerto Rico
+  GeoServer.
+
+- Download selected layers directly into R as sf objects, ready for
+  analysis and mapping.
+
+- Work with layers using stable numeric identifiers or layer names,
+  without needing to manually construct WFS queries.
+
+The package is designed primarily for researchers, analysts, and
+practitioners working with geographic, demographic, environmental, and
+planning data related to Puerto Rico. GeoPR abstracts away the technical
+complexity of WFS requests while preserving transparency and flexibility
+for advanced users.
+
+This package is currently experimental.
 
 ## Installation
 
@@ -14,39 +35,72 @@ You can install the development version of geopr from
 [GitHub](https://github.com/) with:
 
 ``` r
-# install.packages("pak")
-pak::pak("lanselotteoliveras/geopr")
+# install.packages("remotes")
+remotes::install_github("lanselotteoliveras/GeoPR", dependencies = TRUE)
 ```
 
-## Example
+## Basic usage
 
-This is a basic example which shows you how to solve a common problem:
+### List available layers
 
 ``` r
 library(geopr)
-## basic example code
+
+layers <- geopr_list_layers()
+print(capas)
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+This returns a tidy table with:
+
+- a stable numeric `layer_id`,
+
+- layer name,
+
+- thematic group,
+
+- theme and subtheme,
+
+- year (when available).
+
+### Download a layer
+
+Layers can be downloaded using either the numeric identifier or the
+layer name.
 
 ``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+# Using layer name
+municipios <- geopr_get_layer("g03_legales_municipios_2023")
+
+# Using numeric layer_id
+municipios <- geopr_get_layer(1)
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+All layers are returned as sf objects.
 
-You can also embed plots, for example:
+### Download a complete layer (automatic pagination)
 
-<img src="man/figures/README-pressure-1.png" alt="" width="100%" />
+Some layers may exceed the default WFS page size. To retrieve the full
+layer, use:
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+This ensures that no features are silently truncated.
+
+## Data source
+
+GeoPR accesses data from the official Puerto Rico government GeoServer
+WFS endpoint: <http://geoserver2.pr.gov/geoserver/pr_geodata/wfs>
+
+All data ownership, maintenance, and publication remain with the
+original data providers.
+
+## Experimental status
+
+GeoPR is under active development.
+
+- The functions may change.
+
+- Not all layers have been fully tested.
+
+- Error handling and performance optimizations are ongoing.
+
+Feedback, bug reports, and suggestions are welcome via GitHub Issues or
+vis bsky chat.
