@@ -1,0 +1,76 @@
+---
+title: "Introduction to geopr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to geopr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```{r }
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## What is geopr?
+
+The **geopr** package provides programmatic access to official geospatial
+datasets for Puerto Rico published through web services, with a particular
+focus on open standards such as WFS (Web Feature Service).
+
+Its primary goal is to reduce friction between R users and institutional
+geospatial services by enabling reproducible, transparent exploration and
+download of spatial data.
+
+## What is a WFS?
+
+A Web Feature Service (WFS) is an Open Geospatial Consortium (OGC) standard
+that allows access to vector-based geographic features over the web.
+
+Unlike map services (WMS), a WFS returns complete geographic data
+(geometry and attributes), making it suitable for direct analysis in R
+using packages such as `sf`.
+
+## Basic workflow in geopr
+
+A typical **geopr** workflow consists of two main steps:
+
+1. Explore available layers in the service.
+2. Download a specific layer for analysis.
+
+```{r }
+library(geopr)
+```
+
+### 1. Explore available layers
+# \dontrun{
+layers <- geopr_list_layers()
+head(layers)
+# }
+
+The result is a table listing technical layer names and basic metadata,
+allowing users to identify which datasets are relevant for their analysis.
+
+### 2. Download a layer
+
+```{r}
+# \dontrun{
+municipalities <- geopr_get_layer("pr_geodata:g03_legales_municipios_2023")
+municipalities
+# }
+```
+
+The returned object is an `sf` object, ready for spatial analysis,
+visualization, or integration with statistical data.
+
+## Important considerations
+
+- WFS services depend on external infrastructure and may experience outages
+  or changes.
+- Technical layer names may change over time.
+- geopr prioritizes simplicity and reproducibility over exposing all
+  available metadata.
+
+
+

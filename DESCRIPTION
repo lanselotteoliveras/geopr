@@ -13,3 +13,7 @@ Imports:
     sf
 URL: https://github.com/lanselotteoliveras/geopr
 BugReports: https://github.com/lanselotteoliveras/geopr/issues
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
