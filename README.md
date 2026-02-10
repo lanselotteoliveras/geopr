@@ -103,4 +103,4 @@ GeoPR is under active development.
 - Error handling and performance optimizations are ongoing.
 
 Feedback, bug reports, and suggestions are welcome via GitHub Issues or
-vis bsky chat.
+bsky chat.
