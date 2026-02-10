@@ -1,9 +1,9 @@
 Package: geopr
-Title: What the Package Does (One Line, Title Case)
+Title: Access Puerto Rico GeoServer WFS Layers
 Version: 0.0.0.9000
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: Provides helper functions to list and download geospatial layers from the Puerto Rico government GeoServer WFS endpoint. Layers are returned as sf objects ready for analysis and mapping.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
