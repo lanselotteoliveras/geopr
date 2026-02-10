@@ -11,3 +11,5 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
     sf
+URL: https://github.com/lanselotteoliveras/geopr
+BugReports: https://github.com/lanselotteoliveras/geopr/issues
