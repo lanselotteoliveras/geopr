@@ -4,6 +4,7 @@
 # geopr
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The goal of GeoPR is to provide a simple and reliable interface for
@@ -47,7 +48,7 @@ remotes::install_github("lanselotteoliveras/GeoPR", dependencies = TRUE)
 library(geopr)
 
 layers <- geopr_list_layers()
-print(capas)
+print(layers)
 ```
 
 This returns a tidy table with:
@@ -73,6 +74,7 @@ municipios <- geopr_get_layer("g03_legales_municipios_2023")
 
 # Using numeric layer_id
 municipios <- geopr_get_layer(1)
+print(municipios)
 ```
 
 All layers are returned as sf objects.

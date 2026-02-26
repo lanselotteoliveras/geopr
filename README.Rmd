@@ -50,7 +50,7 @@ remotes::install_github("lanselotteoliveras/GeoPR", dependencies = TRUE)
 library(geopr)
 
 layers <- geopr_list_layers()
-print(capas)
+print(layers)
 ```
 
 This returns a tidy table with:
@@ -75,6 +75,7 @@ municipios <- geopr_get_layer("g03_legales_municipios_2023")
 
 # Using numeric layer_id
 municipios <- geopr_get_layer(1)
+print(municipios)
 ```
 
 All layers are returned as sf objects.
@@ -88,6 +89,8 @@ municipios <- geopr_get_layer(
   "g03_legales_municipios_2023",
   all = TRUE
 )
+print(municipios)
+
 ```
 
 This ensures that no features are silently truncated.

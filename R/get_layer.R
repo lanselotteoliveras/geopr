@@ -6,7 +6,7 @@
 #' @param wfs_url URL del WFS.
 #' @param serviceVersion Versión WFS.
 #' @param namespace Namespace por defecto si `layer` viene corto (default "pr_geodata").
-#' @param crs EPSG destino (opcional).
+#' @param crs EPSG  (opcional).
 #' @param bbox Bounding box opcional: sf::st_bbox() o numeric c(xmin,ymin,xmax,ymax)
 #' @param cql_filter Filtro CQL opcional.
 #' @param max_features Tamaño de página (count) por request. Default 5000.

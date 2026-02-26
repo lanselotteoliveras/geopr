@@ -32,7 +32,7 @@ geopr_get_layer(
 
 \item{namespace}{Namespace por defecto si \code{layer} viene corto (default "pr_geodata").}
 
-\item{crs}{EPSG destino (opcional).}
+\item{crs}{EPSG  (opcional).}
 
 \item{bbox}{Bounding box opcional: sf::st_bbox() o numeric c(xmin,ymin,xmax,ymax)}
 
