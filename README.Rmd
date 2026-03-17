@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 **geopr** provides a simple and reliable R interface for accessing official
@@ -51,7 +50,7 @@ Install the development version from [GitHub](https://github.com/lanselottwolive
 
 ```{r install, eval=FALSE, echo=TRUE}
 # install.packages("remotes")
-remotes::install_github("lanselottwoliveras/geopr", dependencies = TRUE)
+remotes::install_github("lanselotteoliveras/geopr", dependencies = TRUE)
 ```
 
 ---

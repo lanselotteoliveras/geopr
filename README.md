@@ -7,7 +7,10 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<<<<<<< Updated upstream
 [![R-CMD-check](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lanselotteoliveras/geopr/actions/workflows/R-CMD-check.yaml)
+=======
+>>>>>>> Stashed changes
 <!-- badges: end -->
 
 **geopr** provides a simple and reliable R interface for accessing
@@ -45,7 +48,7 @@ Install the development version from
 
 ``` r
 # install.packages("remotes")
-remotes::install_github("lanselottwoliveras/geopr", dependencies = TRUE)
+remotes::install_github("lanselotteoliveras/geopr", dependencies = TRUE)
 ```
 
 ------------------------------------------------------------------------
