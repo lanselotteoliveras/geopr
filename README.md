@@ -7,7 +7,7 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lanselotteoliveras/geopr/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 **geopr** provides a simple and reliable R interface for accessing
