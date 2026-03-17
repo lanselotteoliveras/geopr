@@ -41,7 +41,7 @@ users.
 ## Installation
 
 Install the development version from
-[GitHub](https://github.com/lanselottwoliveras/geopr):
+[GitHub](https://github.com/lanselotteoliveras/geopr):
 
 ``` r
 # install.packages("remotes")
