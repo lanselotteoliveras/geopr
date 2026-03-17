@@ -1,0 +1,355 @@
+---
+title: "Introducción a geopr / Introduction to geopr"
+subtitle: "Acceso a datos geoespaciales del Gobierno de Puerto Rico"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introducción a geopr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  eval      = FALSE,   # evita llamadas reales al WFS al compilar
+  fig.align = "center"
+)
+```
+
+---
+
+> **English summary:** `geopr` is an R package that provides a simple interface
+> to download geospatial layers from the Puerto Rico Government's public WFS
+> (Web Feature Service). Layers are returned as `sf` objects ready for analysis
+> and mapping. See the [English section](#english) at the bottom for a quick
+> reference.
+
+---
+
+## ¿Qué es `geopr`?
+
+`geopr` es un paquete de R que permite conectarse directamente al servicio
+**Web Feature Service (WFS)** del Gobierno de Puerto Rico y descargar capas
+geoespaciales sin necesidad de visitar portales web ni descargar archivos
+manualmente.
+
+Las capas se devuelven como objetos **`sf`** (Simple Features), el estándar
+moderno para datos espaciales en R, listos para análisis, visualización y
+exportación.
+
+---
+
+## Instalación
+
+```{r install, eval = FALSE}
+# Instalar desde GitHub
+remotes::install_github("lanselotteoliveras/geopr")
+
+# Cargar el paquete
+library(geopr)
+```
+
+Al cargar el paquete verás un mensaje indicando si falta algún paquete opcional
+(como `mapview` o `leaflet`) necesario para funciones de visualización.
+
+---
+
+## Flujo de trabajo típico
+
+El paquete está diseñado para seguir un flujo natural de 4 pasos:
+
+```
+1. geopr_list_layers()   →   Descubrir qué capas están disponibles
+2. geopr_get_layer()     →   Descargar la capa que necesitas
+3. geopr_preview()       →   Visualizar en un mapa interactivo
+4. geopr_save()          →   Guardar en disco para uso futuro
+```
+
+---
+
+## Paso 1: Listar capas disponibles
+
+Antes de descargar cualquier capa, consulta qué está disponible en el servidor:
+
+```{r list}
+library(geopr)
+
+capas <- geopr_list_layers()
+capas
+```
+
+Esto devuelve un `tibble` con las siguientes columnas:
+
+| Columna    | Descripción                                          |
+|------------|------------------------------------------------------|
+| `layer_id` | ID numérico para referenciar la capa fácilmente      |
+| `layer`    | Nombre técnico de la capa en el servidor             |
+| `grupo`    | Grupo temático (ej. `g03` = límites administrativos) |
+| `tema`     | Tema principal de la capa                            |
+| `subtema`  | Subtema o especificación adicional                   |
+| `year`     | Año de la capa (si está disponible)                  |
+
+### Buscar capas por tema
+
+```{r filter}
+library(dplyr)
+
+# Buscar capas relacionadas con municipios
+capas |>
+  filter(grepl("municipio", layer, ignore.case = TRUE))
+
+# Ver todas las capas del grupo g03 (límites administrativos)
+capas |>
+  filter(grupo == "g03")
+
+# Ver capas disponibles por año
+capas |>
+  filter(!is.na(year)) |>
+  arrange(desc(year))
+```
+
+---
+
+## Paso 2: Descargar una capa
+
+### Por nombre de capa
+
+```{r get-name}
+# Usando el nombre corto
+municipios <- geopr_get_layer("g03_municipios")
+
+# Usando el nombre completo con namespace
+municipios <- geopr_get_layer("pr_geodata:g03_municipios")
+```
+
+### Por layer_id
+
+```{r get-id}
+# Ver el layer_id en geopr_list_layers() y usarlo directamente
+municipios <- geopr_get_layer(5)
+```
+
+### Descarga completa con paginación automática
+
+Por defecto, `geopr_get_layer()` descarga hasta 5,000 features. Para capas
+grandes, usa `all = TRUE` para paginar automáticamente:
+
+```{r get-all}
+# Descargar todos los barrios de Puerto Rico
+barrios <- geopr_get_layer("g03_barrios", all = TRUE)
+nrow(barrios)  # Puerto Rico tiene ~900 barrios
+```
+
+### Filtrar antes de descargar
+
+Esto es más eficiente que descargar todo y filtrar después, porque el filtro
+se aplica directamente en el servidor:
+
+```{r get-filter}
+# Solo los barrios de San Juan
+barrios_sj <- geopr_get_layer(
+  "g03_barrios",
+  cql_filter = "municipio = 'San Juan'",
+  all = TRUE
+)
+
+# Solo una región específica con bounding box
+barrios_norte <- geopr_get_layer(
+  "g03_barrios",
+  bbox = c(-66.2, 18.3, -65.9, 18.5),
+  all  = TRUE
+)
+```
+
+### El objeto devuelto
+
+`geopr_get_layer()` siempre devuelve un objeto `sf`, compatible con todo el
+ecosistema geoespacial de R:
+
+```{r sf-inspect}
+class(municipios)     # "sf" "data.frame"
+sf::st_crs(municipios)  # sistema de referencia de coordenadas
+sf::st_bbox(municipios) # extensión geográfica
+names(municipios)       # columnas disponibles
+```
+
+---
+
+## Paso 3: Visualizar con `geopr_preview()`
+
+Antes de trabajar a fondo con una capa, visualízala rápidamente:
+
+```{r preview-basic}
+# Vista previa básica (descarga 500 features por defecto)
+geopr_preview("g03_municipios")
+```
+
+```{r preview-sf}
+# Si ya tienes el objeto sf descargado, pásalo directamente
+geopr_preview(municipios, layer_name = "Municipios de PR")
+```
+
+```{r preview-options}
+# Personalizar colores y backend
+geopr_preview(
+  "g03_municipios",
+  color   = "#2A9D8F",
+  alpha   = 0.5,
+  backend = "leaflet"
+)
+```
+
+```{r preview-filter}
+# Preview con filtro CQL para explorar un subconjunto
+geopr_preview(
+  "g03_barrios",
+  cql_filter = "municipio = 'Ponce'",
+  n = 100
+)
+```
+
+El mapa se abre en el **Viewer** de RStudio o en el navegador. Al pasar el
+cursor sobre las geometrías verás los atributos de cada feature.
+
+---
+
+## Paso 4: Guardar con `geopr_save()`
+
+Una vez que tienes la capa que necesitas, guárdala en disco:
+
+```{r save-basic}
+# Guardar como GeoPackage (formato recomendado)
+geopr_save(municipios, layer_name = "g03_municipios")
+# → crea: pr_geodata_g03_municipios_2026-02-28.gpkg
+```
+
+```{r save-options}
+# Cambiar formato y destino
+geopr_save(
+  municipios,
+  layer_name = "g03_municipios",
+  format     = "geojson",
+  dir        = "data/capas/"
+)
+
+# Nombre personalizado sin fecha
+geopr_save(
+  municipios,
+  layer_name = "g03_municipios",
+  filename   = "municipios_pr",
+  add_date   = FALSE,
+  format     = "gpkg"
+)
+
+# Sobreescribir si ya existe
+geopr_save(
+  municipios,
+  layer_name = "g03_municipios",
+  overwrite  = TRUE
+)
+```
+
+### Formatos disponibles
+
+| Formato    | Extensión  | Cuándo usarlo                                      |
+|------------|------------|-----------------------------------------------------|
+| `"gpkg"`   | `.gpkg`    | **Recomendado.** Un solo archivo, soporta múltiples capas |
+| `"geojson"`| `.geojson` | Intercambio web, visualización en GitHub            |
+| `"shp"`    | `.shp`     | Compatibilidad con software GIS legado (ArcGIS, QGIS) |
+| `"fgdb"`   | `.gdb`     | Ecosistema Esri / ArcGIS Pro                        |
+| `"csv"`    | `.csv`     | Solo atributos; geometría se convierte a WKT        |
+
+---
+
+## Ejemplo completo: flujo de principio a fin
+
+```{r full-example}
+library(geopr)
+library(dplyr)
+
+# 1. Descubrir capas disponibles
+capas <- geopr_list_layers()
+capas |> filter(grepl("escuela", layer, ignore.case = TRUE))
+
+# 2. Descargar la capa de escuelas
+escuelas <- geopr_get_layer("g10_escuelas", all = TRUE)
+
+# 3. Explorar el objeto
+glimpse(escuelas)
+sf::st_crs(escuelas)
+
+# 4. Visualizar en mapa interactivo
+geopr_preview(escuelas, color = "#E76F51", layer_name = "Escuelas de PR")
+
+# 5. Filtrar y analizar
+escuelas_sj <- escuelas |>
+  filter(municipio == "San Juan")
+
+# 6. Guardar resultado
+geopr_save(escuelas_sj, layer_name = "escuelas_san_juan", format = "gpkg")
+```
+
+---
+
+## Preguntas frecuentes
+
+**¿Necesito una cuenta o API key para usar el WFS?**
+No. El servicio WFS del Gobierno de Puerto Rico es público y de acceso libre.
+
+**¿Qué hago si la descarga es muy lenta?**
+Usa `bbox` o `cql_filter` para limitar la cantidad de datos descargados, o
+reduce `max_features` para páginas más pequeñas.
+
+**¿Qué paquetes necesito para `geopr_preview()`?**
+Instala al menos uno: `install.packages("mapview")` (recomendado) o
+`install.packages("leaflet")`.
+
+**¿Puedo usar `geopr` con `ggplot2`?**
+Sí. Los objetos `sf` son compatibles con `geom_sf()` de `ggplot2`:
+```{r ggplot}
+library(ggplot2)
+ggplot(municipios) +
+  geom_sf(fill = "#E63946", color = "white", linewidth = 0.3) +
+  theme_minimal() +
+  labs(title = "Municipios de Puerto Rico")
+```
+
+---
+
+## English Quick Reference {#english}
+
+`geopr` connects R to Puerto Rico's public WFS geospatial server. All layers
+are returned as `sf` objects.
+
+```{r english-example}
+library(geopr)
+
+# List available layers
+layers <- geopr_list_layers()
+
+# Download a layer by name or ID
+municipalities <- geopr_get_layer("g03_municipios", all = TRUE)
+
+# Interactive map preview
+geopr_preview(municipalities)
+
+# Save to disk
+geopr_save(municipalities, layer_name = "g03_municipios", format = "gpkg")
+```
+
+**Key parameters for `geopr_get_layer()`:**
+
+- `all = TRUE` — paginate automatically to download all features
+- `cql_filter` — server-side attribute filter (e.g. `"municipio = 'San Juan'"`)
+- `bbox` — spatial bounding box filter
+- `max_features` — page size (default 5,000)
+
+For full English documentation of each function, run `?geopr_get_layer`,
+`?geopr_list_layers`, `?geopr_preview`, or `?geopr_save` in your R console.
+
+---
+
+```{r session, eval = TRUE}
+sessionInfo()
+```

@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_layer.R
 \name{geopr_get_layer}
 \alias{geopr_get_layer}
-\title{Descargar una capa del WFS de Puerto Rico como sf (por id o nombre)}
+\title{Download a layer from the Puerto Rico WFS as an sf object (by id or name)}
 \usage{
 geopr_get_layer(
   layer,
@@ -20,37 +20,37 @@ geopr_get_layer(
 )
 }
 \arguments{
-\item{layer}{Identificador: numeric (layer_id) o character
+\item{layer}{Layer identifier: numeric (layer_id) or character.
 \itemize{
-\item "pr_geodata:g03_..." (name completo) o
-\item "g03_..." (layer corto)
+\item "pr_geodata:g03_..." (full name) or
+\item "g03_..." (short layer name)
 }}
 
-\item{wfs_url}{URL del WFS.}
+\item{wfs_url}{WFS service URL.}
 
-\item{serviceVersion}{Versión WFS.}
+\item{serviceVersion}{WFS version.}
 
-\item{namespace}{Namespace por defecto si \code{layer} viene corto (default "pr_geodata").}
+\item{namespace}{Default namespace if \code{layer} is provided without one (default "pr_geodata").}
 
-\item{crs}{EPSG  (opcional).}
+\item{crs}{EPSG code (optional).}
 
-\item{bbox}{Bounding box opcional: sf::st_bbox() o numeric c(xmin,ymin,xmax,ymax)}
+\item{bbox}{Optional bounding box: sf::st_bbox() or numeric c(xmin,ymin,xmax,ymax).}
 
-\item{cql_filter}{Filtro CQL opcional.}
+\item{cql_filter}{Optional CQL filter string.}
 
-\item{max_features}{Tamaño de página (count) por request. Default 5000.}
+\item{max_features}{Page size (count) per request. Default 5000.}
 
-\item{start_index}{startIndex inicial (útil si quieres continuar manualmente). Default 0.}
+\item{start_index}{Initial startIndex (useful to resume manually). Default 0.}
 
-\item{all}{Si TRUE, pagina automáticamente hasta traer todo. Default FALSE.}
+\item{all}{If TRUE, automatically paginates until all features are retrieved. Default FALSE.}
 
-\item{timeout}{Timeout.}
+\item{timeout}{Request timeout in seconds.}
 
-\item{use_cache}{Reutiliza cache de geopr_list_layers().}
+\item{use_cache}{Reuse cached layer list from geopr_list_layers().}
 }
 \value{
-Objeto \code{sf}.
+An \code{sf} object.
 }
 \description{
-Descargar una capa del WFS de Puerto Rico como sf (por id o nombre)
+Download a layer from the Puerto Rico WFS as an sf object (by id or name)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_list.R
 \name{geopr_list_layers}
 \alias{geopr_list_layers}
-\title{Listar capas disponibles del WFS de Puerto Rico (GeoServer PR) con metadatos}
+\title{List available layers from the Puerto Rico WFS (GeoServer)}
 \usage{
 geopr_list_layers(
   wfs_url = "http://geoserver2.pr.gov/geoserver/pr_geodata/wfs",
@@ -11,12 +11,61 @@ geopr_list_layers(
 )
 }
 \arguments{
-\item{wfs_url}{URL del servicio WFS.}
+\item{wfs_url}{Character. Base URL of the WFS service. Defaults to the
+public Puerto Rico GeoServer endpoint.}
 
-\item{serviceVersion}{Versión WFS.}
+\item{serviceVersion}{Character. WFS protocol version. Default \code{"2.0.0"}.}
 
-\item{use_cache}{Si TRUE, reutiliza el resultado en memoria durante la sesión.}
+\item{use_cache}{Logical. If \code{TRUE} (default), reuses the cached result
+in memory during the current R session, avoiding repeated server calls.}
+}
+\value{
+A \code{tibble} with one row per available layer. Columns:
+\describe{
+\item{layer_id}{Stable numeric identifier assigned by geopr.}
+\item{layer}{Short layer name (without namespace prefix).}
+\item{grupo}{Layer group code (e.g. \code{"g03"}).}
+\item{tema}{Primary theme extracted from the layer name.}
+\item{subtema}{Secondary theme extracted from the layer name (when present).}
+\item{year}{Year embedded in the layer name (when present).}
+}
 }
 \description{
-Listar capas disponibles del WFS de Puerto Rico (GeoServer PR) con metadatos
+Queries the Web Feature Service (WFS) endpoint of the Puerto Rico GeoServer
+and returns a tidy table of available layers with essential metadata for
+identification and downstream use.
+}
+\details{
+The function performs a \code{GetCapabilities} request to the specified
+WFS endpoint and processes the XML response to extract only the most
+relevant information for initial service exploration.
+
+The output is intentionally simplified to be human-readable and easy to
+filter, avoiding deeply nested or overly technical structures from the
+original XML. This function is typically used as a first step before
+downloading a specific layer with \code{\link{geopr_get_layer}}.
+}
+\note{
+Layer availability and metadata depend on the upstream GeoServer service.
+Changes or outages in the service may affect the function output.
+}
+\section{Design}{
+
+The function returns a deliberately reduced subset of the available
+metadata to support quick exploration and reduce cognitive overhead.
+More advanced metadata may be exposed in future versions.
+}
+
+\examples{
+\dontrun{
+layers <- geopr_list_layers()
+head(layers)
+
+# Search layers by keyword
+layers[grepl("municipio", layers$layer, ignore.case = TRUE), ]
+}
+
+}
+\seealso{
+\code{\link{geopr_get_layer}} to download a specific layer.
 }

@@ -1,0 +1,11 @@
+pandoc: 3.6.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  geopr: geopr.html
+  introduction-to-geopr: introduction-to-geopr.html
+  reference-manual: reference-manual.html
+last_built: 2026-02-28T22:28Z
+urls:
+  reference: https://lanselotteoliveras.github.io/geopr/reference
+  article: https://lanselotteoliveras.github.io/geopr/articles

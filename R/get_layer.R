@@ -1,21 +1,21 @@
-#' Descargar una capa del WFS de Puerto Rico como sf (por id o nombre)
+#' Download a layer from the Puerto Rico WFS as an sf object (by id or name)
 #'
-#' @param layer Identificador: numeric (layer_id) o character
-#'   - "pr_geodata:g03_..." (name completo) o
-#'   - "g03_..." (layer corto)
-#' @param wfs_url URL del WFS.
-#' @param serviceVersion Versión WFS.
-#' @param namespace Namespace por defecto si `layer` viene corto (default "pr_geodata").
-#' @param crs EPSG  (opcional).
-#' @param bbox Bounding box opcional: sf::st_bbox() o numeric c(xmin,ymin,xmax,ymax)
-#' @param cql_filter Filtro CQL opcional.
-#' @param max_features Tamaño de página (count) por request. Default 5000.
-#' @param start_index startIndex inicial (útil si quieres continuar manualmente). Default 0.
-#' @param all Si TRUE, pagina automáticamente hasta traer todo. Default FALSE.
-#' @param timeout Timeout.
-#' @param use_cache Reutiliza cache de geopr_list_layers().
+#' @param layer Layer identifier: numeric (layer_id) or character.
+#'   - "pr_geodata:g03_..." (full name) or
+#'   - "g03_..." (short layer name)
+#' @param wfs_url WFS service URL.
+#' @param serviceVersion WFS version.
+#' @param namespace Default namespace if `layer` is provided without one (default "pr_geodata").
+#' @param crs EPSG code (optional).
+#' @param bbox Optional bounding box: sf::st_bbox() or numeric c(xmin,ymin,xmax,ymax).
+#' @param cql_filter Optional CQL filter string.
+#' @param max_features Page size (count) per request. Default 5000.
+#' @param start_index Initial startIndex (useful to resume manually). Default 0.
+#' @param all If TRUE, automatically paginates until all features are retrieved. Default FALSE.
+#' @param timeout Request timeout in seconds.
+#' @param use_cache Reuse cached layer list from geopr_list_layers().
 #'
-#' @return Objeto `sf`.
+#' @return An `sf` object.
 #' @export
 geopr_get_layer <- function(
     layer,
@@ -32,30 +32,43 @@ geopr_get_layer <- function(
     use_cache = TRUE
 ) {
   if (!requireNamespace("sf", quietly = TRUE)) {
-    stop("Falta 'sf'. Instala con install.packages('sf').", call. = FALSE)
+    stop("Package 'sf' is required. Install it with install.packages('sf').", call. = FALSE)
   }
   if (!requireNamespace("httr2", quietly = TRUE)) {
-    stop("Falta 'httr2'. Instala con install.packages('httr2').", call. = FALSE)
+    stop("Package 'httr2' is required. Install it with install.packages('httr2').", call. = FALSE)
   }
 
-  # 1) Resolver typeNames correcto
+  .server_error_msg <- paste0(
+    "\n\n--- SERVICE NOTICE ---\n",
+    "This error may be caused by a temporary issue with the gis.pr.gov server.\n",
+    "Please try again later.\n\n",
+    "If the error persists, send an email to:\n",
+    "  support@prits.pr.gov\n",
+    "with the following message:\n",
+    "  \"This is to notify that the WFS service at gis.pr.gov is down\"\n",
+    "----------------------"
+  )
+
+  tryCatch({
+
+  # 1) Resolve correct typeNames
   typeNames <- NULL
 
   if (is.numeric(layer) && length(layer) == 1) {
-    capas <- geopr_list_layers(
+    layers_df <- geopr_list_layers(
       wfs_url = wfs_url,
       serviceVersion = serviceVersion,
       use_cache = use_cache
     )
     id <- as.integer(layer)
-    layer_short <- capas$layer[capas$layer_id == id]
+    layer_short <- layers_df$layer[layers_df$layer_id == id]
     if (length(layer_short) != 1 || is.na(layer_short)) {
-      stop("No encontré `layer_id` = ", id, " en geopr_list_layers().", call. = FALSE)
+      stop("Could not find `layer_id` = ", id, " in geopr_list_layers().", call. = FALSE)
     }
     typeNames <- paste0(namespace, ":", layer_short)
 
   } else if (is.character(layer) && length(layer) == 1 && nzchar(layer)) {
-    # Si ya viene con namespace (ej. pr_geodata:g03_...)
+    # Already includes namespace (e.g. pr_geodata:g03_...)
     if (grepl("^[^:]+:.+", layer)) {
       typeNames <- layer
     } else {
@@ -63,10 +76,10 @@ geopr_get_layer <- function(
     }
 
   } else {
-    stop("`layer` debe ser numeric (layer_id) o character (name completo o layer corto).", call. = FALSE)
+    stop("`layer` must be numeric (layer_id) or character (full name or short layer name).", call. = FALSE)
   }
 
-  # 2) Normalizar bbox si aplica
+  # 2) Normalize bbox if provided
   bbox_param <- NULL
   if (!is.null(bbox)) {
     bb <- NULL
@@ -76,12 +89,12 @@ geopr_get_layer <- function(
       bb <- c(xmin = bbox[1], ymin = bbox[2], xmax = bbox[3], ymax = bbox[4])
       class(bb) <- "bbox"
     } else {
-      stop("`bbox` debe ser sf::st_bbox() o numeric c(xmin,ymin,xmax,ymax).", call. = FALSE)
+      stop("`bbox` must be an sf::st_bbox() object or a numeric vector c(xmin,ymin,xmax,ymax).", call. = FALSE)
     }
     bbox_param <- paste(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]], sep = ",")
   }
 
-  # Helper interno: trae una página (NO exportado)
+  # Internal helper: fetch one page (not exported)
   fetch_page <- function(start_idx) {
     req <- httr2::request(wfs_url)
     req <- httr2::req_url_query(
@@ -111,8 +124,8 @@ geopr_get_layer <- function(
     if (status >= 400) {
       body <- tryCatch(httr2::resp_body_string(resp, encoding = "UTF-8"), error = function(e) "")
       stop(
-        sprintf("GetFeature falló (HTTP %s) para %s (startIndex=%s).", status, typeNames, start_idx),
-        if (nzchar(body)) paste0("\nRespuesta (primeros 2000 chars):\n", substr(body, 1, 2000)) else "",
+        sprintf("GetFeature failed (HTTP %s) for %s (startIndex=%s).", status, typeNames, start_idx),
+        if (nzchar(body)) paste0("\nResponse (first 2000 chars):\n", substr(body, 1, 2000)) else "",
         call. = FALSE
       )
     }
@@ -121,12 +134,12 @@ geopr_get_layer <- function(
     sf::st_read(geojson_txt, quiet = TRUE)
   }
 
-  # 3) all=FALSE: una sola página
+  # 3) all=FALSE: single page
   if (!isTRUE(all)) {
     return(fetch_page(start_index))
   }
 
-  # 4) all=TRUE: paginar automáticamente
+  # 4) all=TRUE: paginate automatically
   out_list <- list()
   idx <- as.integer(start_index)
   k <- 1L
@@ -142,10 +155,14 @@ geopr_get_layer <- function(
 
     idx <- idx + n
 
-    # si llegó menos que max_features, ya no hay más
+    # if fewer features than max_features were returned, we have reached the end
     if (n < as.integer(max_features)) break
   }
 
   if (length(out_list) == 1) return(out_list[[1]])
   do.call(rbind, out_list)
+
+  }, error = function(e) {
+    stop(conditionMessage(e), .server_error_msg, call. = FALSE)
+  })
 }

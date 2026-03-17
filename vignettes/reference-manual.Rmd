@@ -1,0 +1,495 @@
+---
+title: "Reference Manual — geopr"
+subtitle: "Documentación completa de todas las funciones / Complete function reference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reference Manual}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  eval      = FALSE
+)
+```
+
+Este documento describe en detalle cada función del paquete `geopr` con todos
+sus parámetros, valores de retorno y ejemplos de uso.
+
+*This document describes each function in detail with all parameters, return
+values, and usage examples.*
+
+---
+
+## Índice / Index {#index}
+
+| Función | Propósito |
+|---|---|
+| [`geopr_list_layers()`](#list) | Listar capas disponibles en el WFS |
+| [`geopr_get_layer()`](#get) | Descargar una capa como objeto `sf` |
+| [`geopr_preview()`](#preview) | Visualizar una capa en mapa interactivo |
+| [`geopr_save()`](#save) | Guardar una capa en disco |
+
+---
+
+## `geopr_list_layers()` {#list}
+
+### Descripción
+
+Consulta el servicio WFS del Gobierno de Puerto Rico y devuelve un catálogo
+completo de las capas disponibles con metadatos estructurados. Es el punto de
+partida recomendado para descubrir qué datos están disponibles.
+
+*Queries the Puerto Rico WFS and returns a structured catalog of all available
+layers. This is the recommended starting point for discovering available data.*
+
+### Uso
+
+```{r list-usage}
+geopr_list_layers(
+  wfs_url        = "http://geoserver2.pr.gov/geoserver/pr_geodata/wfs",
+  serviceVersion = "2.0.0",
+  use_cache      = TRUE
+)
+```
+
+### Parámetros / Parameters
+
+| Parámetro | Tipo | Default | Descripción |
+|---|---|---|---|
+| `wfs_url` | `character` | URL del WFS de PR | URL base del servicio WFS. Cambiar solo si se usa otro servidor. |
+| `serviceVersion` | `character` | `"2.0.0"` | Versión del protocolo WFS. |
+| `use_cache` | `logical` | `TRUE` | Si `TRUE`, reutiliza el resultado en memoria durante la sesión activa, evitando llamadas repetidas al servidor. |
+
+### Valor de retorno / Return value
+
+Un `tibble` con una fila por capa disponible:
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `layer_id` | `integer` | ID numérico único. Se puede usar directamente en `geopr_get_layer()`. |
+| `layer` | `character` | Nombre técnico de la capa (sin namespace). |
+| `grupo` | `character` | Código de grupo temático (ej. `"g03"`). |
+| `tema` | `character` | Tema principal derivado del nombre de la capa. |
+| `subtema` | `character` | Subtema o especificación adicional (`NA` si no aplica). |
+| `year` | `integer` | Año de la capa si aparece en el nombre (`NA` si no aplica). |
+
+### Ejemplos / Examples
+
+```{r list-examples}
+library(geopr)
+library(dplyr)
+
+# Obtener el catálogo completo
+capas <- geopr_list_layers()
+capas
+
+# Buscar por texto en el nombre
+capas |> filter(grepl("escuela", layer, ignore.case = TRUE))
+capas |> filter(grepl("carretera", layer, ignore.case = TRUE))
+
+# Filtrar por grupo temático
+capas |> filter(grupo == "g03")  # límites administrativos
+capas |> filter(grupo == "g10")  # infraestructura y servicios
+
+# Ver capas con año disponible
+capas |> filter(!is.na(year)) |> arrange(desc(year))
+
+# Forzar actualización ignorando el cache
+capas_fresh <- geopr_list_layers(use_cache = FALSE)
+```
+
+### Notas / Notes
+
+> El resultado se almacena en memoria (`cache`) durante la sesión de R.
+> Esto significa que la segunda llamada a `geopr_list_layers()` es
+> instantánea. Usa `use_cache = FALSE` para forzar una consulta fresca
+> al servidor (útil si el servidor actualizó sus capas durante la sesión).
+
+---
+
+## `geopr_get_layer()` {#get}
+
+### Descripción
+
+Descarga una capa del WFS y la devuelve como un objeto `sf` listo para
+análisis espacial. Soporta descarga paginada automática, filtros espaciales
+(bbox) y filtros de atributos (CQL).
+
+*Downloads a WFS layer and returns it as an `sf` object. Supports automatic
+paginated download, spatial filters (bbox), and attribute filters (CQL).*
+
+### Uso
+
+```{r get-usage}
+geopr_get_layer(
+  layer,
+  wfs_url        = "http://geoserver2.pr.gov/geoserver/pr_geodata/wfs",
+  serviceVersion = "2.0.0",
+  namespace      = "pr_geodata",
+  crs            = NULL,
+  bbox           = NULL,
+  cql_filter     = NULL,
+  max_features   = 5000,
+  start_index    = 0,
+  all            = FALSE,
+  timeout        = 120,
+  use_cache      = TRUE
+)
+```
+
+### Parámetros / Parameters
+
+| Parámetro | Tipo | Default | Descripción |
+|---|---|---|---|
+| `layer` | `numeric` o `character` | — | **Requerido.** Ver formas aceptadas abajo. |
+| `wfs_url` | `character` | URL WFS de PR | URL base del servicio. |
+| `serviceVersion` | `character` | `"2.0.0"` | Versión del protocolo WFS. |
+| `namespace` | `character` | `"pr_geodata"` | Prefijo de namespace del GeoServer. |
+| `crs` | `integer` | `NULL` | Código EPSG para reproyectar (ej. `32161`). Si `NULL`, usa el CRS original. |
+| `bbox` | `bbox` o `numeric(4)` | `NULL` | Bounding box para recorte espacial: objeto `sf::st_bbox()` o vector `c(xmin, ymin, xmax, ymax)`. |
+| `cql_filter` | `character` | `NULL` | Filtro CQL aplicado en el servidor (ej. `"municipio = 'San Juan'"`). |
+| `max_features` | `integer` | `5000` | Tamaño de página por request. Reducir si hay timeouts. |
+| `start_index` | `integer` | `0` | Índice de inicio de la descarga. Útil para retomar descargas interrumpidas. |
+| `all` | `logical` | `FALSE` | Si `TRUE`, pagina automáticamente hasta descargar todos los features de la capa. |
+| `timeout` | `integer` | `120` | Tiempo máximo de espera por request en segundos. |
+| `use_cache` | `logical` | `TRUE` | Reutiliza cache de `geopr_list_layers()` al resolver `layer_id`. |
+
+#### Formas válidas para el argumento `layer`
+
+| Forma | Ejemplo | Descripción |
+|---|---|---|
+| `numeric` | `5` | `layer_id` de `geopr_list_layers()` |
+| `character` corto | `"g03_municipios"` | Nombre sin namespace |
+| `character` completo | `"pr_geodata:g03_municipios"` | Nombre con namespace incluido |
+
+### Valor de retorno / Return value
+
+Un objeto `sf` (`data.frame` espacial) con:
+
+- Una columna de geometría (`geometry`) con las geometrías vectoriales.
+- Columnas de atributos según los campos de la capa en el servidor.
+- CRS asignado según la respuesta del servidor (o el `crs` especificado).
+
+### Ejemplos / Examples
+
+```{r get-examples}
+library(geopr)
+
+# --- Formas básicas de descarga ---
+
+# Por nombre corto
+municipios <- geopr_get_layer("g03_municipios")
+
+# Por nombre completo con namespace
+municipios <- geopr_get_layer("pr_geodata:g03_municipios")
+
+# Por layer_id (ver geopr_list_layers())
+municipios <- geopr_get_layer(5)
+
+# --- Descarga completa ---
+
+# Descargar todos los features con paginación automática
+barrios <- geopr_get_layer("g03_barrios", all = TRUE)
+
+# --- Filtros ---
+
+# Filtro por atributo (CQL): solo barrios de un municipio
+barrios_sj <- geopr_get_layer(
+  "g03_barrios",
+  cql_filter = "municipio = 'San Juan'",
+  all = TRUE
+)
+
+# Filtro espacial: solo features dentro de un bounding box
+features_norte <- geopr_get_layer(
+  "g03_barrios",
+  bbox = c(-66.2, 18.3, -65.9, 18.5),
+  all  = TRUE
+)
+
+# Filtro con objeto sf como bbox
+mi_area <- sf::st_bbox(mi_poligono)
+features_area <- geopr_get_layer("g03_barrios", bbox = mi_area, all = TRUE)
+
+# --- Configuración avanzada ---
+
+# Reproyectar al sistema de coordenadas de Puerto Rico
+municipios_pr <- geopr_get_layer("g03_municipios", crs = 32161, all = TRUE)
+
+# Reducir página si hay timeouts en conexión lenta
+municipios <- geopr_get_layer(
+  "g03_municipios",
+  max_features = 1000,
+  all          = TRUE,
+  timeout      = 180
+)
+
+# Retomar desde un índice específico
+pagina_3 <- geopr_get_layer(
+  "g03_barrios",
+  max_features = 500,
+  start_index  = 1000   # empieza en el feature 1001
+)
+```
+
+### Notas / Notes
+
+> **Paginación:** cuando `all = TRUE`, la función descarga páginas de
+> `max_features` features en secuencia y las une con `rbind()`. Se detiene
+> automáticamente cuando el servidor devuelve menos features que `max_features`.
+
+> **Filtros CQL:** los filtros se ejecutan en el servidor antes de la
+> transferencia, lo que los hace mucho más eficientes que filtrar en R después
+> de descargar. Usa la sintaxis del estándar OGC Filter Encoding.
+
+---
+
+## `geopr_preview()` {#preview}
+
+### Descripción
+
+Genera un mapa interactivo con un subconjunto de features de una capa.
+Diseñada para exploración rápida antes de una descarga completa.
+Soporta `mapview` y `leaflet` como backends de visualización.
+
+*Generates an interactive map with a subset of features. Designed for quick
+exploration before a full download.*
+
+### Uso
+
+```{r preview-usage}
+geopr_preview(
+  layer,
+  n              = 500,
+  wfs_url        = "http://geoserver2.pr.gov/geoserver/pr_geodata/wfs",
+  serviceVersion = "2.0.0",
+  namespace      = "pr_geodata",
+  crs            = NULL,
+  bbox           = NULL,
+  cql_filter     = NULL,
+  backend        = c("mapview", "leaflet"),
+  color          = "#E63946",
+  alpha          = 0.4,
+  layer_name     = NULL,
+  use_cache      = TRUE,
+  timeout        = 60
+)
+```
+
+### Parámetros / Parameters
+
+| Parámetro | Tipo | Default | Descripción |
+|---|---|---|---|
+| `layer` | `numeric`, `character`, o `sf` | — | **Requerido.** Nombre, ID de capa, o un objeto `sf` ya descargado. |
+| `n` | `integer` | `500` | Máximo de features a descargar para la preview. Ignorado si `layer` es `sf`. |
+| `wfs_url` | `character` | URL WFS de PR | URL base del servicio. |
+| `serviceVersion` | `character` | `"2.0.0"` | Versión WFS. |
+| `namespace` | `character` | `"pr_geodata"` | Namespace del GeoServer. |
+| `crs` | `integer` | `NULL` | EPSG para reproyección antes de visualizar. |
+| `bbox` | `bbox` o `numeric(4)` | `NULL` | Bounding box para limitar el área de descarga. |
+| `cql_filter` | `character` | `NULL` | Filtro CQL de atributos aplicado en el servidor. |
+| `backend` | `character` | `"mapview"` | Motor de visualización: `"mapview"` o `"leaflet"`. Si el elegido no está instalado, usa el otro automáticamente. |
+| `color` | `character` | `"#E63946"` | Color de relleno/puntos. Acepta hex o nombres de color de R. |
+| `alpha` | `numeric` | `0.4` | Transparencia del relleno (0 = transparente, 1 = sólido). |
+| `layer_name` | `character` | `NULL` | Etiqueta en la leyenda. Si `NULL`, se deriva del nombre de la capa. |
+| `use_cache` | `logical` | `TRUE` | Reutiliza cache de `geopr_list_layers()`. |
+| `timeout` | `integer` | `60` | Timeout de descarga en segundos. |
+
+### Valor de retorno / Return value
+
+Invisiblemente, el objeto `sf` usado para el mapa. El mapa interactivo se
+renderiza en el Viewer de RStudio o en el navegador como efecto secundario.
+
+### Backends de visualización
+
+| Backend | Paquete requerido | Características |
+|---|---|---|
+| `"mapview"` | `mapview` | Múltiples basemaps, popups automáticos, mejor UX |
+| `"leaflet"` | `leaflet` + `htmltools` | Mayor control manual, fallback automático |
+
+```{r install-backends}
+install.packages("mapview")   # recomendado
+install.packages("leaflet")   # alternativa
+```
+
+### Ejemplos / Examples
+
+```{r preview-examples}
+library(geopr)
+
+# Vista previa básica
+geopr_preview("g03_municipios")
+
+# Con menos features para carga más rápida
+geopr_preview("g03_municipios", n = 78)
+
+# Por layer_id
+geopr_preview(5, n = 100)
+
+# Pasar un sf ya descargado
+municipios <- geopr_get_layer("g03_municipios", all = TRUE)
+geopr_preview(municipios, layer_name = "Municipios de Puerto Rico")
+
+# Cambiar color y transparencia
+geopr_preview("g03_municipios", color = "#2A9D8F", alpha = 0.6)
+
+# Usar leaflet como backend
+geopr_preview("g03_municipios", backend = "leaflet")
+
+# Con filtro CQL
+geopr_preview("g03_barrios", cql_filter = "municipio = 'Ponce'", n = 200)
+
+# Con bounding box
+geopr_preview("g03_barrios", bbox = c(-66.2, 18.3, -65.9, 18.5))
+
+# Capturar el sf devuelto
+sf_muestra <- geopr_preview("g03_municipios", n = 20)
+nrow(sf_muestra)
+```
+
+---
+
+## `geopr_save()` {#save}
+
+### Descripción
+
+Guarda un objeto `sf` en disco con nombre de archivo generado automáticamente.
+Soporta cinco formatos geoespaciales estándar.
+
+*Saves an `sf` object to disk with an auto-generated filename. Supports five
+standard geospatial formats.*
+
+### Uso
+
+```{r save-usage}
+geopr_save(
+  x,
+  layer_name = NULL,
+  format     = c("gpkg", "geojson", "shp", "fgdb", "csv"),
+  dir        = ".",
+  filename   = NULL,
+  overwrite  = FALSE,
+  add_date   = TRUE,
+  quiet      = FALSE
+)
+```
+
+### Parámetros / Parameters
+
+| Parámetro | Tipo | Default | Descripción |
+|---|---|---|---|
+| `x` | `sf` | — | **Requerido.** Objeto `sf` a guardar. |
+| `layer_name` | `character` | `NULL` | Nombre base para el archivo. Si `NULL`, usa `"layer"`. El namespace (`pr_geodata:`) se elimina automáticamente. |
+| `format` | `character` | `"gpkg"` | Formato de salida. Ver tabla de formatos abajo. |
+| `dir` | `character` | `"."` | Directorio de destino. Se crea automáticamente si no existe. |
+| `filename` | `character` | `NULL` | Nombre personalizado (sin extensión). Si se especifica, `layer_name` y `add_date` son ignorados. |
+| `overwrite` | `logical` | `FALSE` | Si `TRUE`, sobreescribe archivos existentes. Por defecto lanza error si el archivo ya existe. |
+| `add_date` | `logical` | `TRUE` | Si `TRUE`, añade la fecha actual (`YYYY-MM-DD`) al nombre del archivo. |
+| `quiet` | `logical` | `FALSE` | Si `TRUE`, suprime el mensaje de confirmación al guardar. |
+
+### Formatos disponibles / Available formats
+
+| `format` | Extensión | Driver GDAL | Cuándo usarlo |
+|---|---|---|---|
+| `"gpkg"` | `.gpkg` | `GPKG` | **Recomendado.** Un solo archivo, soporta múltiples capas y tipos de geometría. |
+| `"geojson"` | `.geojson` | `GeoJSON` | Intercambio en web, fácil de previsualizar en GitHub. |
+| `"shp"` | `.shp` | `ESRI Shapefile` | Compatibilidad con ArcGIS, QGIS y software GIS legado. Limitaciones: nombres de columnas ≤ 10 caracteres, sin soporte UTF-8 nativo. |
+| `"fgdb"` | `.gdb` | `OpenFileGDB` | Ecosistema Esri / ArcGIS Pro. |
+| `"csv"` | `.csv` | — | Solo atributos. La geometría se convierte a WKT automáticamente. Emite `warning`. |
+
+### Valor de retorno / Return value
+
+Invisiblemente, el path completo del archivo guardado (`character`). Permite
+encadenar operaciones:
+
+```{r save-path}
+path <- geopr_save(municipios, layer_name = "g03_municipios")
+file.exists(path)  # TRUE
+```
+
+### Naming automático / Automatic naming
+
+El nombre del archivo sigue el patrón:
+
+```
+pr_geodata_{layer_name}_{YYYY-MM-DD}.{ext}
+```
+
+Ejemplos:
+- `pr_geodata_g03_municipios_2026-02-28.gpkg`
+- `pr_geodata_g03_barrios_2026-02-28.geojson`
+
+### Ejemplos / Examples
+
+```{r save-examples}
+library(geopr)
+
+municipios <- geopr_get_layer("g03_municipios", all = TRUE)
+
+# GeoPackage (default) en el directorio actual
+geopr_save(municipios, layer_name = "g03_municipios")
+
+# GeoJSON en una carpeta específica
+geopr_save(
+  municipios,
+  layer_name = "g03_municipios",
+  format     = "geojson",
+  dir        = "data/capas/"
+)
+
+# Shapefile para uso en ArcGIS
+geopr_save(municipios, layer_name = "g03_municipios", format = "shp")
+
+# Nombre personalizado sin fecha
+geopr_save(
+  municipios,
+  filename = "municipios_pr",
+  format   = "gpkg",
+  add_date = FALSE
+)
+
+# Sobreescribir versión anterior
+geopr_save(
+  municipios,
+  layer_name = "g03_municipios",
+  overwrite  = TRUE
+)
+
+# Capturar el path devuelto
+ruta <- geopr_save(municipios, layer_name = "g03_municipios", quiet = TRUE)
+cat("Archivo guardado en:", ruta)
+
+# Guardar como CSV (solo atributos)
+geopr_save(municipios, layer_name = "g03_municipios", format = "csv")
+```
+
+---
+
+## Dependencias del paquete / Package dependencies
+
+### Requeridas (se instalan automáticamente)
+
+| Paquete | Versión mínima | Uso en `geopr` |
+|---|---|---|
+| `sf` | ≥ 1.0.0 | Lectura, escritura y manipulación de objetos espaciales |
+| `httr2` | ≥ 1.0.0 | Requests HTTP al WFS |
+| `ows4R` | ≥ 0.3 | Parseo del `GetCapabilities` del WFS |
+| `tibble` | ≥ 3.0.0 | Formato de salida de `geopr_list_layers()` |
+| `dplyr` | ≥ 1.0.0 | Manipulación interna de datos |
+| `rlang` | ≥ 1.0.0 | Utilidades de programación funcional |
+
+### Opcionales (instalar según necesidad)
+
+| Paquete | Versión mínima | Uso en `geopr` | Instalar con |
+|---|---|---|---|
+| `mapview` | ≥ 2.11.0 | `geopr_preview()` — backend recomendado | `install.packages("mapview")` |
+| `leaflet` | ≥ 2.1.0 | `geopr_preview()` — backend alternativo | `install.packages("leaflet")` |
+| `htmltools` | ≥ 0.5.0 | Título del mapa en `geopr_preview()` con leaflet | `install.packages("htmltools")` |
+
+---
+
+[↑ Volver al índice / Back to index](#index)

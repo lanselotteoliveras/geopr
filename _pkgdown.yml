@@ -1,0 +1,80 @@
+url: https://lanselotteoliveras.github.io/geopr
+
+template:
+  bootstrap: 5
+  bootswatch: flatly   # tema visual limpio y profesional
+  bslib:
+    primary: "#E63946"          # rojo coral — color del paquete
+    link-color: "#2A9D8F"       # verde azulado para links
+
+home:
+  title: "geopr — Datos Geoespaciales de Puerto Rico"
+  description: >
+    Paquete de R para acceder al Web Feature Service (WFS) del Gobierno de
+    Puerto Rico. Descarga capas geoespaciales directamente como objetos sf.
+
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [github]
+
+  components:
+    intro:
+      text: "Inicio / Home"
+      href: index.html
+
+    reference:
+      text: "Funciones / Functions"
+      href: reference/index.html
+
+    articles:
+      text: "Guías / Guides"
+      menu:
+        - text: "Introducción al paquete"
+          href: articles/geopr.html
+        - text: "Reference Manual"
+          href: articles/reference-manual.html
+
+    github:
+      icon: fab fa-github
+      href: https://github.com/lanselotteoliveras/geopr
+      aria-label: GitHub
+
+# ---------------------------------------------------------------------------
+# Organización de la página de referencia de funciones
+# ---------------------------------------------------------------------------
+reference:
+  - title: "Explorar capas / Explore layers"
+    desc: >
+      Funciones para descubrir y consultar las capas disponibles en el WFS
+      de Puerto Rico.
+    contents:
+      - geopr_list_layers
+
+  - title: "Descargar datos / Download data"
+    desc: >
+      Funciones para descargar capas geoespaciales como objetos `sf`.
+    contents:
+      - geopr_get_layer
+
+  - title: "Visualizar / Visualize"
+    desc: >
+      Funciones para exploración visual rápida de capas en mapas interactivos.
+    contents:
+      - geopr_preview
+
+  - title: "Guardar / Save"
+    desc: >
+      Funciones para exportar capas a disco en múltiples formatos geoespaciales.
+    contents:
+      - geopr_save
+
+# ---------------------------------------------------------------------------
+# Artículos / Vignettes
+# ---------------------------------------------------------------------------
+articles:
+  - title: "Guías / Guides"
+    navbar: ~
+    contents:
+      - geopr
+      - reference-manual
