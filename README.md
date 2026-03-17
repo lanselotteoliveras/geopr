@@ -7,10 +7,6 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-<<<<<<< Updated upstream
-[![R-CMD-check](https://github.com/lanselottwoliveras/geopr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lanselotteoliveras/geopr/actions/workflows/R-CMD-check.yaml)
-=======
->>>>>>> Stashed changes
 <!-- badges: end -->
 
 **geopr** provides a simple and reliable R interface for accessing
@@ -44,7 +40,7 @@ users.
 ## Installation
 
 Install the development version from
-[GitHub](https://github.com/lanselotteoliveras/geopr):
+[GitHub](https://github.com/lanselottwoliveras/geopr):
 
 ``` r
 # install.packages("remotes")

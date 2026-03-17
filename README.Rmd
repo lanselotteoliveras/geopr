@@ -55,7 +55,7 @@ remotes::install_github("lanselotteoliveras/geopr", dependencies = TRUE)
 
 ---
 
-## Functions overview
+## Functions overview 
 
 | Function | Description |
 |---|---|
